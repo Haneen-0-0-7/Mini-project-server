@@ -43,7 +43,9 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
-    'login.apps.LoginConfig'
+    'login.apps.LoginConfig',
+    'malpractice.apps.MalpracticeConfig',
+    'setexam.apps.SetexamConfig'
 ]
 
 CORS_ORIGIN_ALLOW_ALL = True
@@ -57,6 +59,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
 ]
 
 ROOT_URLCONF = 'serverproject.urls'
@@ -66,7 +69,7 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'haneenaranhikkalfaheem@gmail.com'
-EMAIL_HOST_PASSWORD = 'gorvzrkdkuayobtm' 
+EMAIL_HOST_PASSWORD = 'jnsajjbykhobdnsp' 
 
 TEMPLATES = [
     {
