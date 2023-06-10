@@ -32,8 +32,18 @@ class ExamId(models.Model):
     examdate = models.DateField()
     examtime = models.CharField(max_length=20)
 
-class ClassAllotted(models.Model):
-    exam_id = models.ForeignKey(ExamId, on_delete=models.CASCADE, related_name='class_allotted')
-    faculty_assigned = models.ForeignKey(Faculty,max_length=100, blank=True, null=True,on_delete=models.SET_NULL)
-    classallotted = models.CharField(max_length=100, blank=True, null=True)
-    csv_file = models.FileField(upload_to='csv_file/')
+# class ClassAllotted(models.Model):
+#     # exam_id = models.ForeignKey(ExamId, on_delete=models.CASCADE, related_name='class_allotted')
+#     class_id = class_id = models.AutoField(primary_key=True)
+#     faculty_assigned = models.ForeignKey(Faculty,max_length=100, blank=True, null=True,on_delete=models.SET_NULL)  
+#     classallotted = models.CharField(max_length=100, blank=True, null=True)
+#     csv_file = models.FileField(upload_to='csv_file/')
+
+
+
+class Section(models.Model):
+    class_id = models.PositiveIntegerField(primary_key=True)
+    seats = models.TextField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Section {self.class_id}"
