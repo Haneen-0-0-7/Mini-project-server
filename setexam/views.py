@@ -2,12 +2,12 @@
 from django.shortcuts import render, redirect
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
-from .models import Exam, Year, Batch, UploadedCSV
+from .models import  Batch
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import render, redirect
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
-from .models import Exam, Year, Batch, UploadedCSV, Section
+from .models import  Batch, Section
 import json
 from django.core.files.base import ContentFile
 import os
@@ -15,7 +15,6 @@ import csv
 import json
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
-from .models import Allotment
 from django.contrib.postgres.fields import HStoreField
 from django.contrib.postgres.forms import HStoreField as HStoreFormField
 from login.models import Faculty
@@ -39,12 +38,12 @@ def get_exam_details(request):
         try:
             payload = json.loads(request.body)
             exam_name = payload.get('examName')
-            exam_date = payload.get('examDate')
-            exam_time = payload.get('examTime')
+            # exam_date = payload.get('examDate')
+            # exam_time = payload.get('examTime')
 
-            print(f'Name: {exam_name}, Date: {exam_date}, Time: {exam_time}')
+            print(f'Name: {exam_name}')
 
-            if not (exam_name and exam_date and exam_time):
+            if not (exam_name):
                 return JsonResponse({'error': 'Exam name, date, and time are required.'}, status=400)
 
             """ exam_date = datetime.strptime(exam_date, '%Y-%m-%d').date()  """ # Convert date string to date object
@@ -52,7 +51,7 @@ def get_exam_details(request):
             # Generate a random 4-digit number for examid
             examid = random.randint(1000, 9999)
 
-            exam = ExamId.objects.create(exam_id=str(examid), examname=exam_name, examdate=exam_date, examtime=exam_time)
+            exam = ExamId.objects.create(exam_id=str(examid), examname=exam_name)
 
             return JsonResponse({'exam_id': exam.exam_id})
         except Exception as e:
@@ -65,45 +64,71 @@ def get_exam_details(request):
 def upload_csv(request):
     if request.method == 'POST':
         try:
-            exam_id = request.POST.get('exam_id')
+            id = request.POST.get('exam_id')
             year_name = request.POST.get('year_name')
-            exam_time = request.POST.get('exam_time')
+            # exam_time = request.POST.get('exam_time')
             branch = request.POST.get('branch_time')
             csv_file = request.FILES.get('csv_file')
-
+            print(branch)
+            
             # Create a unique file name
-            file_name = f"{exam_id}/{year_name}/{branch}.csv"
+            file_name = f"{id}/{year_name}/{branch}.csv"
 
             # Save the CSV file locally
             file_path = os.path.join(settings.MEDIA_ROOT, 'uploaded', file_name)
             fs = FileSystemStorage()
             fs.save(file_path, csv_file)
+            print(file_path)
+            print('hello')
+            batch = Batch.objects.create(
+                examid = ExamId.objects.get(exam_id=id),
+                year = year_name,
+                branch_name=branch,
+                csv_file_path = file_path
+            )
 
-            return JsonResponse({'status': 'success'})
+            return JsonResponse({'status': 'success', 'batch_id': batch.id})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
     else:
         return JsonResponse({'error': 'Invalid request method'}, status=405)
     
 
-@csrf_exempt
-
-def get_exam_details_front(request, examname):
+def get_exam_details_front(request, id):
     try:
-        exam = ExamId.objects.get(examname=examname)
-        class_allotted = exam.class_allotted.first()
+        exam = ExamId.objects.get(exam_id=id)
+        print(exam)
+        print(id)
+        # class_allotted = exam.class_allotted.first()
         exam_details = {
             'exam_id': exam.exam_id,
             'examname': exam.examname,
-            'examdate': exam.examdate.strftime('%Y-%m-%d'),
-            'examtime': exam.examtime,
-            'faculty_assigned': class_allotted.faculty_assigned.FacultyName if class_allotted else None,
-            'classallotted': class_allotted.classallotted if class_allotted else None,
-            'csv_file': class_allotted.csv_file.url if class_allotted else None,
+            # 'examdate': exam.examdate.strftime('%Y-%m-%d'),
+            # 'examtime': exam.examtime,
+            # 'faculty_assigned': class_allotted.faculty_assigned.FacultyName if class_allotted else None,
+            # 'classallotted': class_allotted.classallotted if class_allotted else None,
+            # 'csv_file': class_allotted.csv_file.url if class_allotted else None,
         }
         return JsonResponse(exam_details, safe=False)
     except ExamId.DoesNotExist:
         return JsonResponse({'error': 'Exam not found'}, status=404)
+
+# def get_exam_details_front(request, id):
+#     try:
+#         exam = ExamId.objects.get(exam_id=id)
+#         class_allotted = exam.class_allotted.first()
+#         exam_details = {
+#             'exam_id': exam.exam_id,
+#             'examname': exam.examname,
+#             # 'examdate': exam.examdate.strftime('%Y-%m-%d'),
+#             # 'examtime': exam.examtime,
+#             # 'faculty_assigned': class_allotted.faculty_assigned.FacultyName if class_allotted else None,
+#             # 'classallotted': class_allotted.classallotted if class_allotted else None,
+#             # 'csv_file': class_allotted.csv_file.url if class_allotted else None,
+#         }
+#         return JsonResponse(exam_details, safe=False)
+#     except ExamId.DoesNotExist:
+#         return JsonResponse({'error': 'Exam not found'}, status=404)
 
 # @csrf_exempt
 # def classallotment(request):
@@ -296,7 +321,7 @@ def classallotment(request):
 
                     allotted_data.extend(data)
 
-            random.shuffle(allotted_data)
+            # random.shuffle(allotted_data)
 
             allotted_folder = os.path.join('allotted', exam_id)
             os.makedirs(allotted_folder, exist_ok=True)
