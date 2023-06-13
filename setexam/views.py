@@ -6,7 +6,7 @@ from .models import  Batch
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import render, redirect
 from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from .models import  Batch, Section
 import json
 from django.core.files.base import ContentFile
@@ -25,6 +25,8 @@ from login.models import Faculty
 # from .models import ClassAllotted
 from .models import ExamId
 import math
+import pandas as pd
+
 
 @csrf_exempt
 
@@ -106,21 +108,28 @@ def get_exam_details_front(request, id):
         faculty_usernames = Faculty.objects.values_list('FacultyName', flat=True)
         print(faculty_usernames)
         # Shuffle the list of faculty usernames
-        random.shuffle(faculty_usernames)
+     
 
         k=0
+        alloted_faculty = []
         for section in sections:
             section.faculty = faculty_usernames[k]
             k += 1
             section.save()
+            alloted_faculty.append({'classid': section.class_id, 'faculty':section.faculty})
         exam_details = {
             'exam_id': exam.exam_id,
             'examname': exam.examname,
+            'alloted_faculty': alloted_faculty
             # 'examdate': exam.examdate.strftime('%Y-%m-%d'),
             # 'examtime': exam.examtime,
             # 'faculty_assigned': class_allotted.faculty_assigned.FacultyName if class_allotted else None,
             # 'classallotted': class_allotted.classallotted if class_allotted else None,
             # 'csv_file': class_allotted.csv_file.url if class_allotted else None,
+
+
+            #Create a dataframe with the alloted faculty data
+
         }
         return JsonResponse(exam_details, safe=False)
     except ExamId.DoesNotExist:
@@ -399,3 +408,37 @@ def classallotment(request):
 
     else:
         return JsonResponse({'error': 'Invalid request method.'})
+
+
+
+import csv
+from django.http import HttpResponse
+from .models import Section
+
+def download_seats_csv(request, class_id):
+    try:
+        print(class_id)
+        section = Section.objects.get(class_id=class_id)
+        seats_data = eval(section.seats)  # Assuming the seats field contains a string representation of a list
+        print(section)
+        # Create a CSV response
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="seats_data.csv"'
+
+        # Create a CSV writer
+        writer = csv.writer(response)
+
+        # Write the header row
+        writer.writerow(['Roll No', 'Name', 'Section'])
+
+        # Write the data rows
+        for sublist in seats_data:
+             if len(sublist) >= 9:
+                writer.writerow(sublist[:9])  # Slice the sublist up to index 8
+            
+        print(response)    
+        return response
+
+    except Section.DoesNotExist:
+        return HttpResponse(status=404)
+
