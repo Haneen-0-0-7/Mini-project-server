@@ -53,7 +53,9 @@ class Batch(models.Model):
 
 
 class Section(models.Model):
-    class_id = models.PositiveIntegerField(primary_key=True)
+    class_id = models.PositiveIntegerField(primary_key=True,unique=True)
+    examid = models.ForeignKey(ExamId, on_delete=models.CASCADE,null=True)
+    faculty = models.CharField(max_length=500,null=True)
     seats = models.TextField(null=True, blank=True)
 
     def __str__(self):

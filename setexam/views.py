@@ -21,6 +21,7 @@ from login.models import Faculty
 import numpy as np
 import random
 from django.shortcuts import get_object_or_404
+from login.models import Faculty
 # from .models import ClassAllotted
 from .models import ExamId
 import math
@@ -99,7 +100,19 @@ def get_exam_details_front(request, id):
         exam = ExamId.objects.get(exam_id=id)
         print(exam)
         print(id)
-        # class_allotted = exam.class_allotted.first()
+        sections = Section.objects.filter(examid=exam)
+        print(sections)
+        # Retrieve all faculty usernames from the Faculty table
+        faculty_usernames = Faculty.objects.values_list('FacultyName', flat=True)
+        print(faculty_usernames)
+        # Shuffle the list of faculty usernames
+        random.shuffle(faculty_usernames)
+
+        k=0
+        for section in sections:
+            section.faculty = faculty_usernames[k]
+            k += 1
+            section.save()
         exam_details = {
             'exam_id': exam.exam_id,
             'examname': exam.examname,
@@ -232,7 +245,7 @@ def get_exam_details_front(request, id):
 #                         while col<8:
 #                             row = 0
 #                             while row < 5:
-#                                 section_data[row][col] =second_20_students[0]
+#                                 section_data[row2][col2] =second_20_students[0]
 #                                 x = second_20_students[0]
 #                                 # print(x)
 #                                 remaining_students.remove(x)
@@ -243,7 +256,7 @@ def get_exam_details_front(request, id):
 #                             chk2 = 1
 #                     if chk1==1 and chk2 == 1:
 #                         class_count += 1
-#                         section = Section(class_id=class_count, seats=json.dumps(section_data))
+#                         section = Section(class_id=class_count, seats=json.dumps(section_data),examid=exam)
 #                         section.save()
 #                     no_of_class -= 1
 
@@ -357,7 +370,7 @@ def classallotment(request):
                     class_seats[seat_row, seat_column] = {'roll_no': roll_no, 'name': name, 'section': section}
 
                 # Create and save the Section object
-                section = Section.objects.create(class_id=class_count, seats=json.dumps(class_seats.tolist()))
+                section = Section.objects.create(class_id=class_count,examid= exam, seats=json.dumps(class_seats.tolist()))
 
                 class_count += 1
 
@@ -377,7 +390,7 @@ def classallotment(request):
                     class_seats[seat_row, seat_column] = {'roll_no': roll_no, 'name': name, 'section': section}
 
                 # Create and save the Section object for leftover students
-                section = Section.objects.create(class_id=class_count, seats=json.dumps(class_seats.tolist()))
+                section = Section.objects.create(class_id=class_count, examid= exam, seats=json.dumps(class_seats.tolist()),)
 
             return JsonResponse({'message': 'Allotment process completed successfully.'})
 
