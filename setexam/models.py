@@ -53,10 +53,33 @@ class Batch(models.Model):
 
 
 class Section(models.Model):
-    class_id = models.PositiveIntegerField(primary_key=True,unique=True)
+    class_id = models.AutoField(primary_key=True)
     examid = models.ForeignKey(ExamId, on_delete=models.CASCADE,null=True)
     faculty = models.CharField(max_length=500,null=True)
     seats = models.TextField(null=True, blank=True)
+    file_path = models.CharField(max_length=500, null=True, blank=True)
+
+    def get_roll_numbers(self):
+        roll_numbers = []
+
+        for row in self.seats:
+            if row:
+                roll_numbers.extend(row)
+
+        return roll_numbers
 
     def __str__(self):
         return f"Section {self.class_id}"
+    
+
+
+class Student(models.Model):
+    roll_no = models.CharField(max_length=50)
+    name = models.CharField(max_length=100)
+    batch = models.CharField(max_length=50)
+    section = models.ForeignKey(Section, on_delete=models.CASCADE,null=True)
+    examid = models.ForeignKey(ExamId, on_delete=models.CASCADE,null=True)
+    seat_row = models.IntegerField()
+    seat_column = models.IntegerField()
+
+

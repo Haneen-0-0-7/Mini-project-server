@@ -7,7 +7,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import render, redirect
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse, HttpResponse
-from .models import  Batch, Section
+from .models import  Batch, Section, Student
 import json
 from django.core.files.base import ContentFile
 import os
@@ -135,6 +135,8 @@ def get_exam_details_front(request, id):
     except ExamId.DoesNotExist:
         return JsonResponse({'error': 'Exam not found'}, status=404)
 
+
+#Mereena code
 # def get_exam_details_front(request, id):
 #     try:
 #         exam = ExamId.objects.get(exam_id=id)
@@ -284,7 +286,7 @@ def get_exam_details_front(request, id):
 #         return JsonResponse({'error': 'Invalid request method.'})
 
 
-
+#Openai code
 from django.db import models
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -319,7 +321,10 @@ def classallotment(request):
                     for branch_file in os.listdir(year_path):
                         if branch_file.endswith('.csv'):
                             branch_name = os.path.splitext(branch_file)[0]
+                            print(branch_name)
                             branch_files[year_folder][branch_name] = os.path.join(year_path, branch_file)
+                    print("1.->",branch_files)
+
 
             # Allotment logic
             class_count = 1
@@ -328,29 +333,35 @@ def classallotment(request):
 
             for year, branches in branch_files.items():
                 for branch_name, branch_file_path in branches.items():
+                    print(branch_name)
+                    print(branch_file_path)
                     data = []
 
                     with open(branch_file_path, 'r') as csv_file:
                         csv_reader = csv.reader(csv_file)
 
-                        next(csv_reader)
-
+                        # next(csv_reader)
+                        # csv_reader.__next__()
                         for row in csv_reader:
                             roll_no = row[1]
+                            print(roll_no)
                             name = row[2]
                             batch = roll_no[:5]
                             data.append((roll_no, name, batch))
+                        
 
-                    allotted_data.extend(data)
+                    allotted_data += data
+                    print(allotted_data)
 
             # random.shuffle(allotted_data)
-
+            
             allotted_folder = os.path.join('allotted', exam_id)
             os.makedirs(allotted_folder, exist_ok=True)
             remaining_students = len(allotted_data)
             total_seats = 45  # Total seats available in each class
 
             while remaining_students > 0:
+                print('Normal filling')
                 class_students = []
                 num_students = min(total_seats, remaining_students)
 
@@ -365,41 +376,90 @@ def classallotment(request):
 
                 if len(class_students) < total_seats:
                     leftover_students.extend(class_students)
+                    print(leftover_students)
                     continue
 
                 class_seats = np.empty((5, 9), dtype=object)
                 class_seats.fill(None)
+                
+                # Allocate students to seats
+                student_objs = []  # Store student objects for later assignment of classid
 
                 # Allocate students to seats
                 for i, student in enumerate(class_students):
                     seat_row = i // 9  # Rows 0, 1, 2, 3, 4
                     seat_column = i % 9  # Columns 0, 1, 2, 3, ..., 8
                     roll_no, name, batch = student
-                    section = batch[4]
-                    class_seats[seat_row, seat_column] = {'roll_no': roll_no, 'name': name, 'section': section}
+                    class_seats[seat_row, seat_column] = roll_no
 
+                    student_obj = Student.objects.create(
+                        roll_no=roll_no,
+                        name=name,
+                        batch=batch,
+                        examid=exam,  
+                        seat_row=seat_row,
+                        seat_column=seat_column
+                    )
+                    student_objs.append(student_obj)
+
+                
+                csv_output_path = os.path.join(allotted_folder, f'class_{class_count}_seats.csv')
                 # Create and save the Section object
-                section = Section.objects.create(class_id=class_count,examid= exam, seats=json.dumps(class_seats.tolist()))
+                section = Section.objects.create(examid= exam, seats=json.dumps(class_seats.tolist()),file_path=csv_output_path)
 
+                # Assign the section id to all the students
+                for student_obj in student_objs:
+                    student_obj.section = section
+                    student_obj.save()
+                
+                
+                # Write class_seats ndarray to CSV file
+                with open(csv_output_path, 'w', newline='') as csv_file:
+                    csv_writer = csv.writer(csv_file)
+                    csv_writer.writerows(class_seats.tolist())
+                
                 class_count += 1
 
             # Allot the leftover students
             if leftover_students:
                 num_leftover_students = len(leftover_students)
+                print("1->leftover",num_leftover_students,end="/n")
                 num_remaining_seats = total_seats - num_leftover_students
                 class_seats = np.empty((5, 9), dtype=object)
                 class_seats.fill(None)
-
+                std_obj = []
                 # Allocate leftover students to seats
                 for i, student in enumerate(leftover_students):
                     seat_row = i // num_remaining_seats  # Rows 0, 1, 2, 3, 4
                     seat_column = i % num_remaining_seats  # Columns 0, 1, 2, 3, ..., num_remaining_seats-1
                     roll_no, name, batch = student
-                    section = batch[4]
-                    class_seats[seat_row, seat_column] = {'roll_no': roll_no, 'name': name, 'section': section}
+                    class_seats[seat_row, seat_column] =  roll_no   
+
+                    student_obj = Student.objects.create(
+                        roll_no=roll_no,
+                        name=name,
+                        batch=batch,
+                        examid=exam,
+                        seat_row=seat_row,
+                        seat_column=seat_column
+                    )
+                    std_obj.append(student_obj)
+
+
 
                 # Create and save the Section object for leftover students
-                section = Section.objects.create(class_id=class_count, examid= exam, seats=json.dumps(class_seats.tolist()),)
+                csv_output_path = os.path.join(allotted_folder, f'class_{class_count}_seats.csv')
+                section = Section.objects.create( examid= exam, seats=json.dumps(class_seats.tolist()),file_path=csv_output_path)
+                # Write class_seats ndarray to CSV file
+                with open(csv_output_path, 'w', newline='') as csv_file:
+                    csv_writer = csv.writer(csv_file)
+                    csv_writer.writerows(class_seats.tolist())
+                
+                # Assign the section id to all the leftover students
+                for student_obj in std_obj:
+                    student_obj.section = section
+                    student_obj.save()
+                
 
             return JsonResponse({'message': 'Allotment process completed successfully.'})
 
@@ -411,34 +471,27 @@ def classallotment(request):
 
 
 
-import csv
-from django.http import HttpResponse
-from .models import Section
 
 def download_seats_csv(request, class_id):
     try:
-        print(class_id)
         section = Section.objects.get(class_id=class_id)
-        seats_data = eval(section.seats)  # Assuming the seats field contains a string representation of a list
-        print(section)
-        # Create a CSV response
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = 'attachment; filename="seats_data.csv"'
+        file_path = section.file_path
 
-        # Create a CSV writer
-        writer = csv.writer(response)
+        # Open the CSV file in binary mode
+        with open(file_path, 'rb') as csv_file:
+            response = HttpResponse(csv_file.read(), content_type='text/csv')
+            # Set the Content-Disposition header for file download
+            response['Content-Disposition'] = 'attachment; filename="data.csv"'
+            return response
 
-        # Write the header row
-        writer.writerow(['Roll No', 'Name', 'Section'])
-
-        # Write the data rows
-        for sublist in seats_data:
-             if len(sublist) >= 9:
-                writer.writerow(sublist[:9])  # Slice the sublist up to index 8
-            
-        print(response)    
+        
+                
+        response = HttpResponse("<h1>hello</h1>")
         return response
+    except Exception as e:
+        return JsonResponse({'error': str(e)})
 
-    except Section.DoesNotExist:
-        return HttpResponse(status=404)
+
+
+
 

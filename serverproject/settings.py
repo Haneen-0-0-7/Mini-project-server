@@ -48,7 +48,7 @@ INSTALLED_APPS = [
     'login.apps.LoginConfig',
     'malpractice.apps.MalpracticeConfig',
     'setexam.apps.SetexamConfig',
-    'reportlab',
+    
 ]
 
 CORS_ORIGIN_ALLOW_ALL = True
