@@ -4,5 +4,5 @@ from malpractice.models import malpractice
 class malpracticeSerializer(serializers.ModelSerializer):
     class Meta:
         model=malpractice
-        fields=('StudentId','StudentName','StudentRegister','StudentClass','StudentBatch',
+        fields=('StudentId','StudentRegister',
                 'StudentInvigilator','StudentRemark')

@@ -19,7 +19,7 @@ import os
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # settings.py
-MEDIA_ROOT = os.path.join(BASE_DIR, 'uploaded')
+# MEDIA_ROOT = os.path.join(BASE_DIR, 'uploaded')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
@@ -48,7 +48,7 @@ INSTALLED_APPS = [
     'login.apps.LoginConfig',
     'malpractice.apps.MalpracticeConfig',
     'setexam.apps.SetexamConfig',
-    
+    'invigilator.apps.InvigilatorConfig',
 ]
 
 CORS_ORIGIN_ALLOW_ALL = True
@@ -99,7 +99,7 @@ WSGI_APPLICATION = 'serverproject.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres',
+        'NAME': 'Automised',
         'USER': 'postgres',
         'PASSWORD': '1234',
         'HOST': 'localhost',
