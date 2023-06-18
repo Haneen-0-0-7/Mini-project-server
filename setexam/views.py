@@ -1,4 +1,3 @@
-# Create your views here.
 from django.shortcuts import render, redirect
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
@@ -26,6 +25,7 @@ from login.models import Faculty
 from .models import ExamId
 import math
 import pandas as pd
+from django.core import serializers
 
 
 @csrf_exempt
@@ -72,6 +72,9 @@ def upload_csv(request):
             # exam_time = request.POST.get('exam_time')
             branch = request.POST.get('branch_time')
             csv_file = request.FILES.get('csv_file')
+            
+            df = pd.read_csv(csv_file)
+            print(df)
             print(branch)
             
             # Create a unique file name
@@ -299,7 +302,40 @@ import random
 
 
 @csrf_exempt
+def display(request,examid):
+        if request.method == 'GET':
+            try:
+             # sections = Section.objects.all().values('class_id')
+             print(examid)
+             exam = ExamId.objects.get(exam_id=examid)
+             sections = Section.objects.filter(examid=exam)
+            # # Retrieve all faculty usernames from the Faculty table
+            #  faculty_usernames = Faculty.objects.values_list('FacultyName', flat=True)
+            #  print(faculty_usernames)
+            #  k=0
+            #  alloted_faculty = []
+            #  for section in sections:
+            #     section.faculty = faculty_usernames[k]
+            #     k += 1
+            #     section.save()
+            
+            #  sections = Section.objects.filter(examid=exam)
+             data = []
+             for section in sections:
+                section_data = {
+                    'class_id': section.class_id,
+                    'class_name': section.class_name,
+                    'faculty': section.faculty,
+                }
+                data.append(section_data)
+
+             return JsonResponse(data, safe=False)
+            except Exception as e:
+                return JsonResponse({'error': str(e)}, status=500)
+        
+@csrf_exempt
 def classallotment(request):
+
     if request.method == 'POST':
         try:
             payload = json.loads(request.body)
@@ -341,7 +377,7 @@ def classallotment(request):
                         csv_reader = csv.reader(csv_file)
 
                         # next(csv_reader)
-                        # csv_reader.__next__()
+                        # csv_reader.next()
                         for row in csv_reader:
                             roll_no = row[1]
                             print(roll_no)
@@ -483,15 +519,5 @@ def download_seats_csv(request, class_id):
             # Set the Content-Disposition header for file download
             response['Content-Disposition'] = 'attachment; filename="data.csv"'
             return response
-
-        
-                
-        response = HttpResponse("<h1>hello</h1>")
-        return response
     except Exception as e:
         return JsonResponse({'error': str(e)})
-
-
-
-
-

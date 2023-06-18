@@ -54,8 +54,9 @@ class Batch(models.Model):
 
 class Section(models.Model):
     class_id = models.AutoField(primary_key=True)
+    class_name = models.CharField(max_length=50,null=True,blank=True)
     examid = models.ForeignKey(ExamId, on_delete=models.CASCADE,null=True)
-    faculty = models.CharField(max_length=500,null=True)
+    faculty = models.CharField(max_length=500,null=True,blank=True)
     seats = models.TextField(null=True, blank=True)
     file_path = models.CharField(max_length=500, null=True, blank=True)
 
