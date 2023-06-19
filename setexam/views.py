@@ -302,6 +302,7 @@ import os
 import csv
 import numpy as np
 import random
+import re
 
 
 @csrf_exempt
@@ -563,13 +564,11 @@ def process_form_data(request):
             faculty_email = faculty.FacultyEmail
 
             exam_id = section.examid
-            print(exam_id)
             examname = exam_id.examname
-            print(examname)
 
             # Send email to the faculty
             subject = 'Attendance Notification'
-            html_content = render_to_string('attendance_email.html', {'faculty_name': faculty_name, 'class_allotted': class_allotted})
+            html_content = render_to_string('attendance_email.html', {'faculty_name': faculty_name, 'class_allotted': class_allotted,'examname': examname})
             text_content = strip_tags(html_content)
 
             email = EmailMultiAlternatives(subject, text_content, to=[faculty_email])
@@ -582,20 +581,100 @@ def process_form_data(request):
                 email.attach(csv_file_name, csv_file.read(), 'text/csv')
 
             email.send()
-
-            
-            
-            print("Class ID:", class_id)
-            print("Faculty Name:", faculty_name)
-            print("Class Allotted:", class_allotted)
-            # Print the faculty email
-            print("Faculty Email:", faculty_email)
-            print("----------------------")
-
-
-
         
         return JsonResponse({'message': 'Form data processed successfully.'})
     else:
         return JsonResponse({'message': 'Invalid request method.'})
+    
+@csrf_exempt
+def get_classnames(request, exam_name):
+    if request.method == 'GET':
+        sections = Section.objects.filter(examid__examname=exam_name)
+        class_names = [section.class_name for section in sections]
+        print(class_names)
+        return JsonResponse({'class_names': class_names})
+    else:
+        return JsonResponse({'error': 'Invalid request method.'}, status=400)
 
+@csrf_exempt
+def get_attendance(request, exam_name, class_name):
+    if request.method == 'GET':
+        section = Section.objects.filter(examid__examname=exam_name, class_name=class_name).first()
+        if section:
+            students = Student.objects.filter(section=section)
+
+            attendance_data = []
+            for student in students:
+                data = {
+                    
+                    'roll_no': student.roll_no,
+                    'student_name': student.name,
+                    'batch': student.batch,
+                    'attendance': student.attendance
+                }
+                attendance_data.append(data)
+
+            return JsonResponse({'attendance_data': attendance_data})
+        else:
+            return JsonResponse({'error': 'No section found for the given exam and class.'}, status=404)
+    else:
+        return JsonResponse({'error': 'Invalid request method.'}, status=400)
+
+@csrf_exempt
+def get_exam_names(request):
+    if request.method == 'GET':
+        exam_names = ExamId.objects.values_list('examname', flat=True)
+        exam_details = []
+
+        for exam_name in exam_names:
+            # Extract exam name
+            exam_match = re.match(r"([^\(\-\d]+)\s?(\d+)?", exam_name)
+            if exam_match:
+                exam = exam_match.group(1).strip()
+            else:
+                exam = ""
+
+            # Extract date
+            date_match = re.search(r"(\d{4}-\d{2}-\d{2})", exam_name)
+            if date_match:
+                date = date_match.group(1)
+            else:
+                date = ""
+
+            # Extract time
+            time_match = re.search(r"\((\w+)\)$", exam_name)
+            if time_match:
+                time = time_match.group(1)
+            else:
+                time = ""
+
+            # Retrieve the corresponding ExamId object
+            exam_id_obj = ExamId.objects.filter(examname=exam_name).first()
+            if exam_id_obj:
+                exam_id = exam_id_obj.id
+            else:
+                exam_id = None
+
+            exam_details.append({
+                "exam_id": exam_id,
+                "exam_name": exam,
+                "date": date,
+                "time": time
+            })
+        return JsonResponse({'exam_details': exam_details})
+    else:
+        return JsonResponse({'error': 'Invalid request method.'}, status=400)
+    
+@csrf_exempt
+def delete_exam(request, exam_id):
+    try:
+        exam = ExamId.objects.get(id=exam_id)
+        exam.delete()
+        return JsonResponse({'message': 'Exam and related tables deleted successfully.'})
+    except ExamId.DoesNotExist:
+        return JsonResponse({'error': 'Exam does not exist.'}, status=404)
+    
+@csrf_exempt
+def get_exam_names_new(request):
+    exams = ExamId.objects.all().values('exam_id', 'examname')
+    return JsonResponse(list(exams), safe=False)
