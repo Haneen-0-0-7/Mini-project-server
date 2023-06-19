@@ -309,21 +309,9 @@ import random
 def display(request,examid):
         if request.method == 'GET':
             try:
-             # sections = Section.objects.all().values('class_id')
              print(examid)
              exam = ExamId.objects.get(exam_id=examid)
              sections = Section.objects.filter(examid=exam)
-            # # Retrieve all faculty usernames from the Faculty table
-            #  faculty_usernames = Faculty.objects.values_list('FacultyName', flat=True)
-            #  print(faculty_usernames)
-            #  k=0
-            #  alloted_faculty = []
-            #  for section in sections:
-            #     section.faculty = faculty_usernames[k]
-            #     k += 1
-            #     section.save()
-            
-            #  sections = Section.objects.filter(examid=exam)
              data = []
              for section in sections:
                 section_data = {
@@ -599,3 +587,45 @@ def process_form_data(request):
         return JsonResponse({'message': 'Form data processed successfully.'})
     else:
         return JsonResponse({'message': 'Invalid request method.'})
+    
+
+
+
+@csrf_exempt
+def get_classnames(request, exam_name):
+    if request.method == 'GET':
+        sections = Section.objects.filter(examid__examname=exam_name)
+        print(sections)
+        class_names = [section.class_name for section in sections]
+        return JsonResponse({'class_names': class_names})
+    else:
+        return JsonResponse({'error': 'Invalid request method.'}, status=400)
+
+
+
+
+
+@csrf_exempt
+def get_attendance(request, exam_name, class_name):
+    if request.method == 'GET':
+        section = Section.objects.filter(examid__examname=exam_name, class_name=class_name).first()
+        if section:
+            students = Student.objects.filter(section=section)
+
+            attendance_data = []
+            for student in students:
+                data = {
+                    
+                    'roll_no': student.roll_no,
+                    'student_name': student.name,
+                    'batch': student.batch,
+                    'attendance': student.attendance
+                }
+                attendance_data.append(data)
+
+            return JsonResponse({'attendance_data': attendance_data})
+        else:
+            return JsonResponse({'error': 'No section found for the given exam and class.'}, status=404)
+    else:
+        return JsonResponse({'error': 'Invalid request method.'}, status=400)
+
