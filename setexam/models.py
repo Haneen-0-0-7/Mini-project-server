@@ -82,5 +82,10 @@ class Student(models.Model):
     examid = models.ForeignKey(ExamId, on_delete=models.CASCADE,null=True)
     seat_row = models.IntegerField()
     seat_column = models.IntegerField()
+    attendance = models.BooleanField(default=False)  
+
+    def __str__(self):
+        return self.name
+
 
 

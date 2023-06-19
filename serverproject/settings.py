@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'login.apps.LoginConfig',
     'malpractice.apps.MalpracticeConfig',
     'setexam.apps.SetexamConfig',
+    'invigilator',
     
 ]
 

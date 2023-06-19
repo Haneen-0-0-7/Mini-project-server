@@ -5,6 +5,7 @@ from rest_framework.parsers import JSONParser
 from django.http.response import JsonResponse
 from malpractice.models import malpractice
 from malpractice.serializers import malpracticeSerializer
+from setexam.models import Student
 # Create your views here.
 @csrf_exempt
 def malpracticeapi(request,id=0):
@@ -37,3 +38,33 @@ def malpracticeapi(request,id=0):
         malpractice_obj = malpractice.objects.get(StudentId=id)
         malpractice_obj.delete()
         return JsonResponse("Deleted Successfully",safe=False)
+
+
+
+
+@csrf_exempt
+def get_roll(request, section_id):
+    if request.method == 'GET':
+        students = Student.objects.filter(section_id=section_id)
+        
+        roll_numbers = [student.roll_no for student in students]
+        
+        return JsonResponse({'roll_numbers': roll_numbers})
+    
+    return JsonResponse({'error': 'Invalid request method.'}, status=400)
+
+
+
+@csrf_exempt
+def report(request,section_id,roll_no):
+    if request.method == 'POST':
+        try:
+            student = Student.objects.get(section_id=section_id, roll_no=roll_no)
+            print(student)
+            return JsonResponse({'student_name': student.name})
+
+        except Student.DoesNotExist:
+            return JsonResponse({'error': 'Student not found'}, status=404)
+
+
+       

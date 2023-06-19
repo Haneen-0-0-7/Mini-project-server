@@ -26,6 +26,10 @@ from .models import ExamId
 import math
 import pandas as pd
 from django.core import serializers
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+
 
 
 @csrf_exempt
@@ -521,3 +525,77 @@ def download_seats_csv(request, class_id):
             return response
     except Exception as e:
         return JsonResponse({'error': str(e)})
+
+
+
+
+@csrf_exempt
+def process_form_data(request):
+    if request.method == 'POST':
+        form_data = json.loads(request.body)
+        print(form_data)
+        data_list = form_data['data']
+        for data in data_list:
+            class_id = data['classId']
+            faculty_name = data['facultyName']
+            class_allotted = data['classAllotted']
+
+            # Get the Section object based on class_id
+            section = Section.objects.get(class_id=class_id)
+
+            # Update the faculty and class name fields
+            section.faculty = faculty_name
+            section.class_name = class_allotted
+
+            # Save the changes
+            section.save()
+            
+
+            # Get the faculty email based on faculty name
+            faculty = Faculty.objects.get(FacultyName=faculty_name)
+            faculty_email = faculty.FacultyEmail
+            file_path = section.file_path
+            # Print the file+path
+            print("File Path:", file_path)
+
+
+            # Get the faculty email based on faculty name
+            faculty = Faculty.objects.get(FacultyName=faculty_name)
+            faculty_email = faculty.FacultyEmail
+
+            exam_id = section.examid
+            print(exam_id)
+            examname = exam_id.examname
+            print(examname)
+
+            # Send email to the faculty
+            subject = 'Attendance Notification'
+            html_content = render_to_string('attendance_email.html', {'faculty_name': faculty_name, 'class_allotted': class_allotted})
+            text_content = strip_tags(html_content)
+
+            email = EmailMultiAlternatives(subject, text_content, to=[faculty_email])
+            email.attach_alternative(html_content, 'text/html')
+
+            # Attach the CSV file to the email
+            csv_file_path = section.file_path
+            csv_file_name = 'attendance.csv'  # Provide a desired name for the CSV file
+            with open(csv_file_path, 'rb') as csv_file:
+                email.attach(csv_file_name, csv_file.read(), 'text/csv')
+
+            email.send()
+
+            
+            
+            print("Class ID:", class_id)
+            print("Faculty Name:", faculty_name)
+            print("Class Allotted:", class_allotted)
+            # Print the faculty email
+            print("Faculty Email:", faculty_email)
+            print("----------------------")
+
+
+
+        
+        return JsonResponse({'message': 'Form data processed successfully.'})
+    else:
+        return JsonResponse({'message': 'Invalid request method.'})

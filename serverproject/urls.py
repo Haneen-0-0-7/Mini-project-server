@@ -23,5 +23,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     re_path(r'^',include('login.urls')),
     re_path(r'^',include('malpractice.urls')),
-    re_path(r'^',include('setexam.urls'))
+    re_path(r'^',include('setexam.urls')),
+    re_path(r'^invigilator/', include('invigilator.urls')),
+
 ]
