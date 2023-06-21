@@ -335,6 +335,7 @@ def classallotment(request):
             print(f'The exam_id is: {exam_id}')
 
             exam = get_object_or_404(ExamId, exam_id=exam_id)
+            print(exam)
 
             uploaded_folder = os.path.join('uploaded/uploaded', exam_id)
             year_folders = ['year 1', 'year 2', 'year 3', 'year 4']
@@ -368,7 +369,7 @@ def classallotment(request):
                     with open(branch_file_path, 'r') as csv_file:
                         csv_reader = csv.reader(csv_file)
 
-                        # next(csv_reader)
+                        next(csv_reader)
                         # csv_reader.next()
                         for row in csv_reader:
                             roll_no = row[1]
@@ -381,7 +382,7 @@ def classallotment(request):
                     allotted_data += data
                     print(allotted_data)
 
-            # random.shuffle(allotted_data)
+            random.shuffle(allotted_data)
             
             allotted_folder = os.path.join('allotted', exam_id)
             os.makedirs(allotted_folder, exist_ok=True)
@@ -461,7 +462,7 @@ def classallotment(request):
                     seat_row = i // num_remaining_seats  # Rows 0, 1, 2, 3, 4
                     seat_column = i % num_remaining_seats  # Columns 0, 1, 2, 3, ..., num_remaining_seats-1
                     roll_no, name, batch = student
-                    class_seats[seat_row, seat_column] =  roll_no   
+                    class_seats[seat_row, seat_column] =  roll_no    
 
                     student_obj = Student.objects.create(
                         roll_no=roll_no,
@@ -628,4 +629,310 @@ def get_attendance(request, exam_name, class_name):
             return JsonResponse({'error': 'No section found for the given exam and class.'}, status=404)
     else:
         return JsonResponse({'error': 'Invalid request method.'}, status=400)
+    
+
+
+# @csrf_exempt
+# def allotment(request):
+#     if request.method == 'POST':
+#         try:
+#             payload = json.loads(request.body)
+#             exam_id = payload.get('examId')
+#             print(f'The exam_id is: {exam_id}')
+
+#             batches = Batch.objects.filter(examid__exam_id=exam_id)
+#             print(batches)
+#             branch_names = []
+#             students = []
+            
+#             for batch in batches:
+#                 branch_names.append(batch.branch_name)
+#                 file_path = batch.csv_file_path.path
+
+#                 with open(file_path, 'r') as csvfile:
+#                     reader = csv.reader(csvfile)
+#                     next(reader)  # Skip the header row
+                    
+#                     for row in reader:
+#                         roll_no = row[0]
+#                         name = row[1]
+#                         batch_name = batch.year + ' ' + batch.branch_name
+
+#                         student = Student.objects.create(
+#                             roll_no=roll_no,
+#                             name=name,
+#                             batch=batch_name,
+#                             examid=batch.examid,
+#                             seat_row=0,
+#                             seat_column=0,
+#                             attendance=False
+#                         )
+#                         students.append(student)
+                    
+                
+            
+            
+
+
+
+    #     except Exception as e:
+    #         return JsonResponse({'error': str(e)}, status=400)
+        
+    # else:
+    #     return JsonResponse({'error': 'Invalid request method.'}, status=400)
+
+
+
+
+import re
+
+@csrf_exempt
+def get_exam_names(request):
+    if request.method == 'GET':
+        exam_names = ExamId.objects.values_list('examname', flat=True)
+        exam_details = []
+
+        for exam_name in exam_names:
+            # Extract exam name
+            exam_match = re.match(r"([^\(\-\d]+)", exam_name)
+            if exam_match:
+                exam = exam_match.group(1).strip()
+            else:
+                exam = ""
+
+            # Extract date
+            date_match = re.search(r"(\d{4}-\d{2}-\d{2})", exam_name)
+            if date_match:
+                date = date_match.group(1)
+            else:
+                date = ""
+
+            # Extract time
+            time_match = re.search(r"\((\w+)\)$", exam_name)
+            if time_match:
+                time = time_match.group(1)
+            else:
+                time = ""
+
+            # Retrieve the corresponding ExamId object
+            exam_id_obj = ExamId.objects.filter(examname=exam_name).first()
+            if exam_id_obj:
+                exam_id = exam_id_obj.id
+            else:
+                exam_id = None
+
+            exam_details.append({
+                "exam_id": exam_id,
+                "exam_name": exam,
+                "date": date,
+                "time": time
+            })
+           
+
+        return JsonResponse({'exam_details': exam_details})
+    else:
+        return JsonResponse({'error': 'Invalid request method.'}, status=400)
+    
+
+
+
+@csrf_exempt
+def delete_exam(request, exam_id):
+    try:
+        exam = ExamId.objects.get(id=exam_id)
+        exam.delete()
+        return JsonResponse({'message': 'Exam and related tables deleted successfully.'})
+    except ExamId.DoesNotExist:
+        return JsonResponse({'error': 'Exam does not exist.'}, status=404)
+
+
+@csrf_exempt
+def allotment(request):
+    if request.method == 'POST':
+        try:
+            payload = json.loads(request.body)
+            exam_id = payload.get('examId')
+            examid_object = ExamId.objects.get(exam_id = exam_id)
+            print(f'The exam_id is: {examid_object}')
+
+            # Retrieve batches for the exam_id
+            batch_objects = Batch.objects.filter(examid=examid_object)
+            # print(batch_objects)
+
+            # Process the files and create Student objects
+            students_list, branch_students_list = process_files(batch_objects)
+            
+
+            # Initialize counters and lists
+            batch_index = 0
+            selected_students = []
+            remaining_students = []
+            x = "hello"
+            while len(students_list) > 0:
+                # print("1->",x)
+                # Select 25 students from the current batch
+                if len(branch_students_list[batch_index]) >= 25:
+                    # print("2->",x)
+                    current_batch_students = branch_students_list[batch_index][:25]
+                    selected_students.extend(current_batch_students[:25])
+                    # print(selected_students)
+                else:
+                    # print("3->",x)
+                    remaining_students.extend(branch_students_list[batch_index])
+                
+                    
+                # Delete selected students from students_list
+                students_list = [student for student in students_list if student not in current_batch_students]
+                # Remove selected students from the current batch in branch_students_list
+                branch_students_list[batch_index] = [student for student in branch_students_list[batch_index] if student not in current_batch_students]
+
+                # Delete remaining students from students_list
+                students_list = [student for student in students_list if student not in remaining_students]
+
+                # Remove remaining students from the current batch in branch_students_list
+                branch_students_list[batch_index] = [student for student in branch_students_list[batch_index] if student not in remaining_students]
+
+                # Switch to the next batch index in a cyclic manner
+                batch_index = (batch_index + 1) % len(branch_students_list)
+                # print(batch_index)
+                # Select 20 students from the next batch
+                if len(branch_students_list[batch_index][:20]) >= 20:
+                    # print("4->",x)
+                    next_batch_students = branch_students_list[batch_index][:20]
+                    selected_students.extend(next_batch_students[:20])
+                    # print(selected_students)
+    
+                else:        
+                    # print("5->",x)    
+                    remaining_students.extend(branch_students_list[batch_index][:20])
+                
+                    
+    
+                # Delete selected students from students_list
+                students_list = [student for student in students_list if student not in next_batch_students]
+
+                # Remove selected students from the next batch in branch_students_list
+                branch_students_list[batch_index] = [student for student in branch_students_list[batch_index] if student not in next_batch_students]
+
+                # Delete remaining students from students_list
+                students_list = [student for student in students_list if student not in remaining_students]
+
+                # Remove remaining students from the current batch in branch_students_list
+                branch_students_list[batch_index] = [student for student in branch_students_list[batch_index] if student not in remaining_students]
+
+                # Allotment
+                class_seats = allot(current_batch_students,next_batch_students )
+                # print(class_seats)
+
+                # Switch to the next batch index in a cyclic manner
+                batch_index = (batch_index + 1) % len(branch_students_list)
+                # print(batch_index)
+
+            return JsonResponse({'message': 'Allotment completed successfully'}, status=200)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+
+    else:
+        return JsonResponse({'error': 'Invalid request method.'}, status=400)
+
+
+def process_files(batch_objects):
+    students = []
+    branch_names = []
+    branch_students = []
+
+    for batch in batch_objects:
+        branch_names.append(batch.branch_name)
+        file_path = batch.csv_file_path.path
+
+        with open(file_path, 'r') as csvfile:
+            reader = csv.reader(csvfile)
+            next(reader)  # Skip the header row
+            branch_students.append([])  # Create an empty list for each branch
+
+            for row in reader:
+                roll_no = row[0]
+                name = row[1]
+                batch_name = batch.year + ' ' + batch.branch_name
+
+                student = {
+                    'roll_no': roll_no,
+                    'name': name,
+                    'batch': batch_name,
+                    'examid': batch.examid,
+                    'seat_row': 0,
+                    'seat_column': 0,
+                    'attendance': False
+                }
+                students.append(student)
+                branch_students[-1].append(student)  # Append student to the last branch list
+
+    return students, branch_students
+
+
+def allot(first_batch_students, second_batch_students):
+    y = "hi"
+    # print('Inside allot function')
+    class_seats = np.empty((5, 9), dtype=object)
+    class_seats.fill(None)
+    # print("1->",y)
+    current_row = 0
+    even_columns = [i for i in range(0, 9, 2)]
+    # print(even_columns)
+    odd_columns = [i for i in range(1, 9, 2)]
+    # print(odd_columns)
+
+    for i, student in enumerate(first_batch_students):
+        # print("2->",y)
+        # print("i->",i)
+        row = current_row
+        # print(row)
+        col = even_columns[i % len(even_columns)]
+        # print(col)
+        class_seats[row, col] = student
+         # Check if we have filled all the seats in the current row
+        if (i + 1) % 5 == 0:
+            current_row += 1  # Move to the next row
+
+            # Reset the column index to 0
+            if current_row < 5:
+                col = even_columns[0]
+            else:
+                break  # Exit the loop if all rows are filled
+            # print("Moving to next row")
+
+
+    current_row = 0
+    for i, student in enumerate(second_batch_students):
+        # print("3->", y)
+        row = current_row
+        col = odd_columns[i % len(odd_columns)]
+        class_seats[row, col] = student
+
+        if (i + 1) % 5 == 0:
+            current_row += 1
+            if current_row < 5:
+                col = odd_columns[0]
+            else:
+                break
+
+        # print("Moving to the next row")
+
+    # Loop to print the entire matrix with student roll numbers
+    for row in class_seats:
+        for seat in row:
+            if seat is None:
+                print("Empty", end="\t")
+            else:
+                roll_number = seat['name']
+                print(roll_number, end="\t")
+        print()
+
+
+
+
+    return class_seats
+
+
 

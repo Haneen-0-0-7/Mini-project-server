@@ -13,5 +13,9 @@ urlpatterns=[
     path('setexam/facultydetails', views.process_form_data, name='process_form_data'),
     path('setexam/get_class/<str:exam_name>/',views.get_classnames,name="get_class"),
     path('setexam/get_attendance/<str:exam_name>/<str:class_name>/', views.get_attendance, name='get_attendance'),
+    path('setexam/allotment/', views.allotment, name='allotment'),
+    path('setexam/exam-names/', views.get_exam_names, name='get_exam_names'),
+    path('setexam/delete/<int:exam_id>/', views.delete_exam, name='delete_exam'),
+
     # re_path(r'^setexam/get_exam_details/<str:id>/', views.get_exam_details_front),
 ]
