@@ -20,7 +20,6 @@ import numpy as np
 import random
 from django.shortcuts import get_object_or_404
 from login.models import Faculty
-# from .models import ClassAllotted
 from .models import ExamId
 import math
 import pandas as pd
@@ -52,9 +51,6 @@ def get_exam_details(request):
             if not (exam_name):
                 return JsonResponse({'error': 'Exam name, date, and time are required.'}, status=400)
 
-            """ exam_date = datetime.strptime(exam_date, '%Y-%m-%d').date()  """ # Convert date string to date object
-
-            # Generate a random 4-digit number for examid
             examid = random.randint(1000, 9999)
 
             exam = ExamId.objects.create(exam_id=str(examid), examname=exam_name)
@@ -102,7 +98,7 @@ def upload_csv(request):
     else:
         return JsonResponse({'error': 'Invalid request method'}, status=405)
     
-
+@csrf_exempt
 def get_exam_details_front(request, id):
     try:
         exam = ExamId.objects.get(exam_id=id)
@@ -127,172 +123,12 @@ def get_exam_details_front(request, id):
             'exam_id': exam.exam_id,
             'examname': exam.examname,
             'alloted_faculty': alloted_faculty
-            # 'examdate': exam.examdate.strftime('%Y-%m-%d'),
-            # 'examtime': exam.examtime,
-            # 'faculty_assigned': class_allotted.faculty_assigned.FacultyName if class_allotted else None,
-            # 'classallotted': class_allotted.classallotted if class_allotted else None,
-            # 'csv_file': class_allotted.csv_file.url if class_allotted else None,
-
-
-            #Create a dataframe with the alloted faculty data
 
         }
         return JsonResponse(exam_details, safe=False)
     except ExamId.DoesNotExist:
         return JsonResponse({'error': 'Exam not found'}, status=404)
 
-
-#Mereena code
-# def get_exam_details_front(request, id):
-#     try:
-#         exam = ExamId.objects.get(exam_id=id)
-#         class_allotted = exam.class_allotted.first()
-#         exam_details = {
-#             'exam_id': exam.exam_id,
-#             'examname': exam.examname,
-#             # 'examdate': exam.examdate.strftime('%Y-%m-%d'),
-#             # 'examtime': exam.examtime,
-#             # 'faculty_assigned': class_allotted.faculty_assigned.FacultyName if class_allotted else None,
-#             # 'classallotted': class_allotted.classallotted if class_allotted else None,
-#             # 'csv_file': class_allotted.csv_file.url if class_allotted else None,
-#         }
-#         return JsonResponse(exam_details, safe=False)
-#     except ExamId.DoesNotExist:
-#         return JsonResponse({'error': 'Exam not found'}, status=404)
-
-# @csrf_exempt
-# def classallotment(request):
-#     if request.method == 'POST':
-#         try:
-#             payload = json.loads(request.body)
-#             exam_id = payload.get('examId')
-#             print(f'The exam_id is: {exam_id}')
-
-#             exam = get_object_or_404(ExamId, exam_id=exam_id)
-
-#             uploaded_folder = os.path.join('uploaded/uploaded', exam_id)
-#             year_folders = ['year 1', 'year 2', 'year 3', 'year 4']
-#             branch_files = {}
-
-#             for year_folder in year_folders:
-#                 year_path = os.path.join(uploaded_folder, year_folder)
-
-#                 if os.path.isdir(year_path):
-#                     branch_files[year_folder] = {}
-
-#                     for branch_file in os.listdir(year_path):
-#                         if branch_file.endswith('.csv'):
-#                             branch_name = os.path.splitext(branch_file)[0]
-#                             branch_files[year_folder][branch_name] = os.path.join(year_path, branch_file)
-
-#             # Allotment logic
-#             class_count = 1
-#             remaining_students = []
-            
-
-#             for year, branches in branch_files.items():
-#                 for branch_name, branch_file_path in branches.items():
-#                     data = []
-
-#                     with open(branch_file_path, 'r') as csv_file:
-#                         csv_reader = csv.reader(csv_file)
-
-#                         next(csv_reader)
-
-#                         for row in csv_reader:
-#                             roll_no = row[1]
-#                             name = row[2]
-#                             data.append((roll_no, name))
-
-#                     remaining_students.extend(data)
-#             # print(remaining_students)
-#             allotted_folder = os.path.join('allotted', exam_id)
-#             os.makedirs(allotted_folder, exist_ok=True)
-#             no_of_class =math.ceil(len(remaining_students)/45)
-#             print(no_of_class)
-#             last = []
-#             while len(remaining_students) > 0:
-                
-#                 allotted_file_path = os.path.join(allotted_folder, f'class{class_count}.csv')
-                
-#                 while no_of_class > 0:
-#                     chk1 = 0
-#                     chk2 = 0
-#                     section_data = [[None] * 9 for _ in range(5)]  # Initialize an empty 5x9 array
-#                     student1 = remaining_students[0]
-#                     batch1_students = [student for student in remaining_students if student[0][:5] == student1[0][:5]]
-#                     if len(batch1_students)<25:
-#                         last.extend(batch1_students)
-#                     else:
-#                         first_25_students = batch1_students[:25]
-#                         print(first_25_students)
-#                         print('\n')
-                    
-#                     diff_batch_students = [student for student in remaining_students if student[0][:5] != student1[0][:5]]
-#                     print(diff_batch_students)
-#                     student2 = diff_batch_students[0]
-#                     batch2_students = [student for student in remaining_students if student[0][:5] == student2[0][:5]]
-                    
-#                     if len(batch1_students)<20:
-#                         last.extend(batch2_students)
-#                     else:
-#                         second_20_students = batch2_students[:20]
-#                         print(second_20_students,end='\t')
-#                         print('\n')
-
-
-#                     if(len(first_25_students) == 25):
-#                         row=0
-#                         col=0
-#                         while col<9:
-#                             row = 0
-#                             while row < 5:
-#                                 section_data[row][col] = first_25_students[0]
-#                                 x = first_25_students[0]
-#                                 # print(x)
-#                                 remaining_students.remove(x)
-#                                 del first_25_students[0]
-                                
-#                                 row += 1
-#                             col += 2
-#                             chk1= 1
-#                     if(len(second_20_students) == 20)  :
-#                         row2=0
-#                         col2=1
-#                         while col<8:
-#                             row = 0
-#                             while row < 5:
-#                                 section_data[row2][col2] =second_20_students[0]
-#                                 x = second_20_students[0]
-#                                 # print(x)
-#                                 remaining_students.remove(x)
-#                                 del second_20_students[0]
-
-#                                 row += 1
-#                             col += 2
-#                             chk2 = 1
-#                     if chk1==1 and chk2 == 1:
-#                         class_count += 1
-#                         section = Section(class_id=class_count, seats=json.dumps(section_data),examid=exam)
-#                         section.save()
-#                     no_of_class -= 1
-
-                
-                
-                
-                
-                
-
-#             return JsonResponse({'message': 'Allotment process completed successfully.'})
-
-#         except Exception as e:
-#             return JsonResponse({'error': str(e)})
-
-#     else:
-#         return JsonResponse({'error': 'Invalid request method.'})
-
-
-#Openai code
 from django.db import models
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -339,179 +175,271 @@ def display(request,examid):
         
 @csrf_exempt
 def classallotment(request):
-
     if request.method == 'POST':
         try:
             payload = json.loads(request.body)
             exam_id = payload.get('examId')
-            print(f'The exam_id is: {exam_id}')
+            examid_object = ExamId.objects.get(exam_id = exam_id)
+            print(f'The exam_id is: {examid_object}')
 
-            exam = get_object_or_404(ExamId, exam_id=exam_id)
+            # Retrieve batches for the exam_id
+            batch_objects = Batch.objects.filter(examid=examid_object)
+            # print(batch_objects)
 
-            uploaded_folder = os.path.join('uploaded', exam_id)
-            year_folders = ['year 1', 'year 2', 'year 3', 'year 4']
-            branch_files = {}
-
-            for year_folder in year_folders:
-                year_path = os.path.join(uploaded_folder, year_folder)
-
-                if os.path.isdir(year_path):
-                    branch_files[year_folder] = {}
-
-                    for branch_file in os.listdir(year_path):
-                        if branch_file.endswith('.csv'):
-                            branch_name = os.path.splitext(branch_file)[0]
-                            print(branch_name)
-                            branch_files[year_folder][branch_name] = os.path.join(year_path, branch_file)
-                    print("1.->",branch_files)
-
-
-            # Allotment logic
-            class_count = 1
-            allotted_data = []
-            leftover_students = []
-
-            for year, branches in branch_files.items():
-                for branch_name, branch_file_path in branches.items():
-                    print(branch_name)
-                    print(branch_file_path)
-                    data = []
-
-                    with open(branch_file_path, 'r') as csv_file:
-                        csv_reader = csv.reader(csv_file)
-
-                        # next(csv_reader)
-                        # csv_reader.next()
-                        for row in csv_reader:
-                            roll_no = row[1]
-                            print(roll_no)
-                            name = row[2]
-                            batch = roll_no[:5]
-                            data.append((roll_no, name, batch))
-                        
-
-                    allotted_data += data
-                    print(allotted_data)
-
-            # random.shuffle(allotted_data)
+            # Process the files and create Student objects
+            students_list, branch_students_list = process_files(batch_objects)
             
-            allotted_folder = os.path.join('allotted', exam_id)
-            os.makedirs(allotted_folder, exist_ok=True)
-            remaining_students = len(allotted_data)
-            total_seats = 45  # Total seats available in each class
 
-            while remaining_students > 0:
-                print('Normal filling')
-                class_students = []
-                num_students = min(total_seats, remaining_students)
-
-                for _ in range(num_students):
-                    if allotted_data:
-                        student = allotted_data.pop(0)
-                        class_students.append(student)
-                    else:
-                        break
-
-                remaining_students -= num_students
-
-                if len(class_students) < total_seats:
-                    leftover_students.extend(class_students)
-                    print(leftover_students)
-                    continue
-
-                class_seats = np.empty((5, 9), dtype=object)
-                class_seats.fill(None)
-                
-                # Allocate students to seats
-                student_objs = []  # Store student objects for later assignment of classid
-
-                # Allocate students to seats
-                for i, student in enumerate(class_students):
-                    seat_row = i // 9  # Rows 0, 1, 2, 3, 4
-                    seat_column = i % 9  # Columns 0, 1, 2, 3, ..., 8
-                    roll_no, name, batch = student
-                    class_seats[seat_row, seat_column] = roll_no
-
-                    student_obj = Student.objects.create(
-                        roll_no=roll_no,
-                        name=name,
-                        batch=batch,
-                        examid=exam,  
-                        seat_row=seat_row,
-                        seat_column=seat_column
-                    )
-                    student_objs.append(student_obj)
-
-                
-                csv_output_path = os.path.join(allotted_folder, f'class_{class_count}_seats.csv')
-                # Create and save the Section object
-                section = Section.objects.create(examid= exam, seats=json.dumps(class_seats.tolist()),file_path=csv_output_path)
-
-                # Assign the section id to all the students
-                for student_obj in student_objs:
-                    student_obj.section = section
-                    student_obj.save()
-                
-                
-                # Write class_seats ndarray to CSV file
-                with open(csv_output_path, 'w', newline='') as csv_file:
-                    csv_writer = csv.writer(csv_file)
-                    csv_writer.writerows(class_seats.tolist())
-                
-                class_count += 1
-
-            # Allot the leftover students
-            if leftover_students:
-                num_leftover_students = len(leftover_students)
-                print("1->leftover",num_leftover_students,end="/n")
-                num_remaining_seats = total_seats - num_leftover_students
-                class_seats = np.empty((5, 9), dtype=object)
-                class_seats.fill(None)
-                std_obj = []
-                # Allocate leftover students to seats
-                for i, student in enumerate(leftover_students):
-                    seat_row = i // num_remaining_seats  # Rows 0, 1, 2, 3, 4
-                    seat_column = i % num_remaining_seats  # Columns 0, 1, 2, 3, ..., num_remaining_seats-1
-                    roll_no, name, batch = student
-                    class_seats[seat_row, seat_column] =  roll_no   
-
-                    student_obj = Student.objects.create(
-                        roll_no=roll_no,
-                        name=name,
-                        batch=batch,
-                        examid=exam,
-                        seat_row=seat_row,
-                        seat_column=seat_column
-                    )
-                    std_obj.append(student_obj)
+            # Initialize counters and lists
+            batch_index = 0
+            selected_students = []
+            remaining_students = []
+            next_batch_students = []
+            count = 1
+            x = "hello"
+            i = 1
+            while len(students_list) > 0:
+                # Select 25 students from the current batch
+                if len(branch_students_list[batch_index]) >= 25:
+                    current_batch_students = branch_students_list[batch_index][:25]
+                    selected_students.extend(current_batch_students[:25])
+                    # Delete selected students from students_list
+                    students_list = [student for student in students_list if student not in current_batch_students]
+                    # Remove selected students from the current batch in branch_students_list
+                    branch_students_list[batch_index] = [student for student in branch_students_list[batch_index] if student not in current_batch_students]
+                    
+                else:
+                    remaining_students.extend(branch_students_list[batch_index])
+                    # Delete remaining students from students_list
+                    students_list = [student for student in students_list if student not in remaining_students]
+                    # Remove remaining students from the current batch in branch_students_list
+                    branch_students_list[batch_index] = [student for student in branch_students_list[batch_index] if student not in remaining_students]
+                    current_batch_students = []
+                    
 
 
+                # Switch to the next batch index in a cyclic manner
+                batch_index = (batch_index + 1) % len(branch_students_list)
+        
+                # Select 20 students from the next batch
+                if len(branch_students_list[batch_index][:20]) >= 20:
+                    next_batch_students = branch_students_list[batch_index][:20]
+                    selected_students.extend(next_batch_students[:20])
+        
+                    # Delete selected students from students_list
+                    students_list = [student for student in students_list if student not in next_batch_students]
 
-                # Create and save the Section object for leftover students
-                csv_output_path = os.path.join(allotted_folder, f'class_{class_count}_seats.csv')
-                section = Section.objects.create( examid= exam, seats=json.dumps(class_seats.tolist()),file_path=csv_output_path)
-                # Write class_seats ndarray to CSV file
-                with open(csv_output_path, 'w', newline='') as csv_file:
-                    csv_writer = csv.writer(csv_file)
-                    csv_writer.writerows(class_seats.tolist())
-                
-                # Assign the section id to all the leftover students
-                for student_obj in std_obj:
-                    student_obj.section = section
-                    student_obj.save()
+                    # Remove selected students from the next batch in branch_students_list
+                    branch_students_list[batch_index] = [student for student in branch_students_list[batch_index] if student not in next_batch_students]
+
+    
+                else:        
+                    print("5->",x)    
+                    remaining_students.extend(branch_students_list[batch_index][:20])
+                   # Delete remaining students from students_list
+                    students_list = [student for student in students_list if student not in remaining_students]
+
+                    # Remove remaining students from the current batch in branch_students_list
+                    branch_students_list[batch_index] = [student for student in branch_students_list[batch_index] if student not in remaining_students]
+                    next_batch_students
+                    
+    
+
                 
 
-            return JsonResponse({'message': 'Allotment process completed successfully.'})
+                # Allotment
+                if len(next_batch_students) > 0 and len(current_batch_students) > 0:
+                    print("inside allot")
+                    class_seats,count = allot(current_batch_students,next_batch_students,examid_object,count )
+                    print("class->",i)
+                    i += 1
+                    
+                
+
+                # Switch to the next batch index in a cyclic manner
+                batch_index = (batch_index + 1) % len(branch_students_list)
+            first = []
+            second = []
+            #Alloting the remaining students
+            while len(remaining_students) >= 45:
+                print('inside remaining')
+                first = remaining_students[:25]
+                second = remaining_students[:20]
+                class_seats,count = allot(first,second,examid_object,count)
+                # Delete allotted students from remaining_students list
+                remaining_students = remaining_students[45:]
+                
+            while len(remaining_students)>25:
+                first = remaining_students[:25]
+                class_seats,count = allot(first, [],examid_object,count)
+
+                # Delete allotted students from remaining_students list
+                remaining_students = remaining_students[25:]
+
+            # Handle the remaining students (less than 25)
+            if len(remaining_students) > 0:
+                class_seats, count = allot(remaining_students, [],examid_object,count)
+                remaining_students = []
+
+            
+            return JsonResponse({'message': 'Allotment completed successfully'}, status=200)
 
         except Exception as e:
-            return JsonResponse({'error': str(e)})
+            return JsonResponse({'error': str(e)}, status=400)
 
     else:
-        return JsonResponse({'error': 'Invalid request method.'})
+        return JsonResponse({'error': 'Invalid request method.'}, status=400)
+
+@csrf_exempt
+def process_files(batch_objects):
+    students = []
+    branch_names = []
+    branch_students = []
+
+    for batch in batch_objects:
+        branch_names.append(batch.branch_name)
+        file_path = batch.csv_file_path.path
+
+        with open(file_path, 'r') as csvfile:
+            reader = csv.DictReader(csvfile)
+            # reader = csv.reader(csvfile)
+            next(reader)  # Skip the header row
+            branch_students.append([])  # Create an empty list for each branch
+
+            # for row in reader:
+            #     roll_no = row[0]
+            #     name = row[1]
+            #     batch_name = batch.year + ' ' + batch.branch_name
+            for row in reader:
+                roll_no = row['Roll_No']
+                name = row['Name']
+                batch_name = batch.year + ' ' + batch.branch_name
+
+                std = Student.objects.create(
+                    roll_no=roll_no,
+                    name=name,
+                    batch=batch_name,
+                    examid=batch.examid,
+                    seat_row=0,
+                    seat_column=0,
+                    attendance=False
+                )
+                student = {
+                    'roll_no': roll_no,
+                    'name': name,
+                    'batch': batch_name,
+                    'examid': batch.examid,
+                    'seat_row': 0,
+                    'seat_column': 0,
+                    'attendance': False
+                }
+                students.append(student)
+                branch_students[-1].append(student)  # Append student to the last branch list
+
+    return students, branch_students
+
+@csrf_exempt
+def allot(first_batch_students, second_batch_students,examid_object,count):
+    section = Section()
+    allotted_folder = os.path.join('allotted', str(examid_object.id))
+    os.makedirs(allotted_folder, exist_ok=True)
+    print('hello')
+    class_seats = np.empty((5, 9), dtype=object)
+    class_seats.fill(None)
+    current_row = 0
+    even_columns = [i for i in range(0, 9, 2)]
+    odd_columns = [i for i in range(1, 9, 2)]
+    
+    section = Section.objects.create(examid=examid_object)  # Create the Section object
+
+    for i, student in enumerate(first_batch_students):
+        print("even")
+        print(student)
+        row = current_row
+        col = even_columns[i % len(even_columns)]
+        class_seats[row, col] = student
+        student_object = Student.objects.get(roll_no = student['roll_no'],examid=student['examid'])
+        student_object.section = section
+        student_object.save()
+
+
+
+         # Check if we have filled all the seats in the current row
+        if (i + 1) % 5 == 0:
+            current_row += 1  # Move to the next row
+
+            # Reset the column index to 0
+            if current_row < 5:
+                col = even_columns[0]
+            else:
+                break  # Exit the loop if all rows are filled
+            #
+            
+
+    
+    current_row = 0
+    for i, student in enumerate(second_batch_students):
+        print("odd")
+        row = current_row
+        col = odd_columns[i % len(odd_columns)]
+        class_seats[row, col] = student
+         # Assuming roll_no is the key to match with seat
+        student_object = Student.objects.get(roll_no = student['roll_no'],examid=student['examid'])
+        student_object.section = section
+        student_object.save()
+
+        
+
+        if (i + 1) % 4 == 0:
+            current_row += 1
+            if current_row < 5:
+                col = odd_columns[0]
+            else:
+                break
+
+    # Create a unique file name for each function call using the count
+    file_name = f'class_allotment_{count}.csv'
+    file_path = os.path.join(allotted_folder, file_name)
+            
+    
+    section.examid = examid_object
+   
+    # Write roll numbers to the unique CSV file
+    with open(file_path, 'w', newline='') as csv_file:
+        csv_writer = csv.writer(csv_file)
+        for row in class_seats:
+            row_roll_numbers = []
+            for seat in row:
+                if seat is not None:
+                    roll_number = seat['roll_no']
+                    row_roll_numbers.append(roll_number)
+                else:
+                     row_roll_numbers.append("None")
+            csv_writer.writerow(row_roll_numbers)
+    section.file_path = file_path
+    section.save()
+
+    print(f"Class allotment data saved in file: {file_path}")
+
+    count += 1
+
+    # Loop to print the entire matrix with student roll numbers
+    for row in class_seats:
+        for seat in row:
+            if seat is None:
+                print("Empty", end="\t")
+            else:
+                roll_number = seat['roll_no']
+                print(roll_number, end="\t")
+        print()
 
 
 
 
+    return class_seats, count
+
+
+@csrf_exempt
 def download_seats_csv(request, class_id):
     try:
         section = Section.objects.get(class_id=class_id)
@@ -591,7 +519,6 @@ def get_classnames(request, exam_name):
     if request.method == 'GET':
         sections = Section.objects.filter(examid__examname=exam_name)
         class_names = [section.class_name for section in sections]
-        print(class_names)
         return JsonResponse({'class_names': class_names})
     else:
         return JsonResponse({'error': 'Invalid request method.'}, status=400)
@@ -614,7 +541,13 @@ def get_attendance(request, exam_name, class_name):
                 }
                 attendance_data.append(data)
 
-            return JsonResponse({'attendance_data': attendance_data})
+            response_data = {
+                'faculty_name': section.faculty , # Add the faculty name to the response
+                'attendance_data': attendance_data
+                
+            }
+
+            return JsonResponse(response_data)
         else:
             return JsonResponse({'error': 'No section found for the given exam and class.'}, status=404)
     else:

@@ -20,7 +20,7 @@ def get_examnames(request, facultyname):
     else:
         return JsonResponse({'error': 'Invalid request method.'}, status=400)
 
-@csrf_exempt   
+@csrf_exempt
 def get_attendance(request, exam_name, faculty_name):
     if request.method == 'GET':
         section = Section.objects.filter(examid__examname=exam_name, faculty=faculty_name).first()
