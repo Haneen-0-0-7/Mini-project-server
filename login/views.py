@@ -19,7 +19,6 @@ def faculty_login(request):
         print('password:', password)
         try:
             faculty = Faculty.objects.get(FacultyName=username, FacultyPass=password)
-            print('user:', faculty)
             if faculty is not None:
                 response =  JsonResponse({'success':True})
                 return response

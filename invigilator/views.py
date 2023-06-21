@@ -37,9 +37,6 @@ def get_attendance(request, exam_name, faculty_name):
                     'attendance': student.attendance
                 }
                 attendance_data.append(data)
-
-           
-
             response_data = {
                 'section_id': section.class_id,
                 'attendance_data': attendance_data

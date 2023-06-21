@@ -43,10 +43,6 @@ def get_exam_details(request):
         try:
             payload = json.loads(request.body)
             exam_name = payload.get('examName')
-            # exam_date = payload.get('examDate')
-            # exam_time = payload.get('examTime')
-
-            print(f'Name: {exam_name}')
 
             if not (exam_name):
                 return JsonResponse({'error': 'Exam name, date, and time are required.'}, status=400)
@@ -74,8 +70,6 @@ def upload_csv(request):
             
             df = pd.read_csv(csv_file)
             print(df)
-            print(branch)
-            
             # Create a unique file name
             file_name = f"{id}/{year_name}/{branch}.csv"
 
@@ -83,8 +77,6 @@ def upload_csv(request):
             file_path = os.path.join(settings.MEDIA_ROOT, 'uploaded', file_name)
             fs = FileSystemStorage()
             fs.save(file_path, csv_file)
-            print(file_path)
-            print('hello')
             batch = Batch.objects.create(
                 examid = ExamId.objects.get(exam_id=id),
                 year = year_name,
@@ -102,13 +94,9 @@ def upload_csv(request):
 def get_exam_details_front(request, id):
     try:
         exam = ExamId.objects.get(exam_id=id)
-        print(exam)
-        print(id)
         sections = Section.objects.filter(examid=exam)
-        print(sections)
         # Retrieve all faculty usernames from the Faculty table
         faculty_usernames = Faculty.objects.values_list('FacultyName', flat=True)
-        print(faculty_usernames)
         # Shuffle the list of faculty usernames
      
 
@@ -146,20 +134,8 @@ def display(request,examid):
         if request.method == 'GET':
             try:
              # sections = Section.objects.all().values('class_id')
-             print(examid)
              exam = ExamId.objects.get(exam_id=examid)
              sections = Section.objects.filter(examid=exam)
-            # # Retrieve all faculty usernames from the Faculty table
-            #  faculty_usernames = Faculty.objects.values_list('FacultyName', flat=True)
-            #  print(faculty_usernames)
-            #  k=0
-            #  alloted_faculty = []
-            #  for section in sections:
-            #     section.faculty = faculty_usernames[k]
-            #     k += 1
-            #     section.save()
-            
-            #  sections = Section.objects.filter(examid=exam)
              data = []
              for section in sections:
                 section_data = {
@@ -180,7 +156,6 @@ def classallotment(request):
             payload = json.loads(request.body)
             exam_id = payload.get('examId')
             examid_object = ExamId.objects.get(exam_id = exam_id)
-            print(f'The exam_id is: {examid_object}')
 
             # Retrieve batches for the exam_id
             batch_objects = Batch.objects.filter(examid=examid_object)
@@ -233,8 +208,7 @@ def classallotment(request):
                     branch_students_list[batch_index] = [student for student in branch_students_list[batch_index] if student not in next_batch_students]
 
     
-                else:        
-                    print("5->",x)    
+                else:           
                     remaining_students.extend(branch_students_list[batch_index][:20])
                    # Delete remaining students from students_list
                     students_list = [student for student in students_list if student not in remaining_students]
@@ -249,9 +223,7 @@ def classallotment(request):
 
                 # Allotment
                 if len(next_batch_students) > 0 and len(current_batch_students) > 0:
-                    print("inside allot")
                     class_seats,count = allot(current_batch_students,next_batch_students,examid_object,count )
-                    print("class->",i)
                     i += 1
                     
                 
@@ -262,7 +234,6 @@ def classallotment(request):
             second = []
             #Alloting the remaining students
             while len(remaining_students) >= 45:
-                print('inside remaining')
                 first = remaining_students[:25]
                 second = remaining_students[:20]
                 class_seats,count = allot(first,second,examid_object,count)
@@ -343,7 +314,6 @@ def allot(first_batch_students, second_batch_students,examid_object,count):
     section = Section()
     allotted_folder = os.path.join('allotted', str(examid_object.id))
     os.makedirs(allotted_folder, exist_ok=True)
-    print('hello')
     class_seats = np.empty((5, 9), dtype=object)
     class_seats.fill(None)
     current_row = 0
@@ -353,8 +323,6 @@ def allot(first_batch_students, second_batch_students,examid_object,count):
     section = Section.objects.create(examid=examid_object)  # Create the Section object
 
     for i, student in enumerate(first_batch_students):
-        print("even")
-        print(student)
         row = current_row
         col = even_columns[i % len(even_columns)]
         class_seats[row, col] = student
@@ -379,7 +347,6 @@ def allot(first_batch_students, second_batch_students,examid_object,count):
     
     current_row = 0
     for i, student in enumerate(second_batch_students):
-        print("odd")
         row = current_row
         col = odd_columns[i % len(odd_columns)]
         class_seats[row, col] = student
@@ -419,7 +386,6 @@ def allot(first_batch_students, second_batch_students,examid_object,count):
     section.file_path = file_path
     section.save()
 
-    print(f"Class allotment data saved in file: {file_path}")
 
     count += 1
 
@@ -430,11 +396,6 @@ def allot(first_batch_students, second_batch_students,examid_object,count):
                 print("Empty", end="\t")
             else:
                 roll_number = seat['roll_no']
-                print(roll_number, end="\t")
-        print()
-
-
-
 
     return class_seats, count
 
@@ -461,7 +422,6 @@ def download_seats_csv(request, class_id):
 def process_form_data(request):
     if request.method == 'POST':
         form_data = json.loads(request.body)
-        print(form_data)
         data_list = form_data['data']
         for data in data_list:
             class_id = data['classId']
