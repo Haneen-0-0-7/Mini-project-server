@@ -427,7 +427,7 @@ def process_form_data(request):
             class_id = data['classId']
             faculty_name = data['facultyName']
             class_allotted = data['classAllotted']
-
+            print(data)
             # Get the Section object based on class_id
             section = Section.objects.get(class_id=class_id)
 
